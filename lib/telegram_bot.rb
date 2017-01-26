@@ -94,9 +94,10 @@ class TelegramBot
                                     text: timers,
                                     parse_mode: 'HTML')
         when '/start'
-          TelegramUser.create!(chat_id: message.chat.id,
-                               name: "#{message.from.first_name} " \
-                                     "#{message.from.last_name}")
+          user = TelegramUser.new
+          user.chat_id = message.chat.id,
+          user.user = "#{message.from.first_name} #{message.from.last_name}"
+          user.save!
           telegram.api.send_message(chat_id: message.chat.id,
                                     text: "Hello, #{message.from.first_name}")
         when '/uptime'
