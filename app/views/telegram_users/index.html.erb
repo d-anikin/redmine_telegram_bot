@@ -1,0 +1,35 @@
+<h2>Пользователи в Telegram</h2>
+<div class="autoscroll">
+  <%= form_tag(telegram_users_url, method: :post) do %>
+    <table class="list">
+      <thead>
+        <tr>
+          <th>ChatId</th>
+          <th>Telegram name</th>
+          <th>User</th>
+          <th>Начало работы</th>
+          <th>Конец работы</th>
+          <th>Активный?</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <% for telegram_user in @telegram_users %>
+          <tr class="<%= cycle('odd', 'even') %>">
+            <td><%= telegram_user.chat_id %></td>
+            <td><%= telegram_user.name %></td>
+            <td>
+              <%= select_tag "telegram_users[#{telegram_user.id}][user_id]",
+                             options_from_collection_for_select(@users, :id, :name, telegram_user.user_id)
+              %>
+            </td>
+            <td><%= text_field_tag "telegram_users[#{telegram_user.id}][start_at]", telegram_user.start_at_to_s %></td>
+            <td><%= text_field_tag "telegram_users[#{telegram_user.id}][end_at]", telegram_user.end_at_to_s %></td>
+            <td><%= check_box_tag "telegram_users[#{telegram_user.id}][active]", true, telegram_user.active %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+    <%= submit_tag l(:button_save) %>
+  <% end %>
+</div>
