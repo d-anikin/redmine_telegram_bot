@@ -94,10 +94,13 @@ class TelegramBot
                                     text: timers,
                                     parse_mode: 'HTML')
         when '/start'
-          user = TelegramUser.new
-          user.chat_id = message.chat.id,
-          user.name = "#{message.from.first_name} #{message.from.last_name}"
-          user.save!
+          user =
+            TelegramUser.where(chat_id: message.chat.id)
+                        .first_or_initialize do |user|
+                          user.chat_id = message.chat.id
+                          user.name = "#{message.from.first_name} #{message.from.last_name}"
+                        end
+          user.save! if user.new_record?
           telegram.api.send_message(chat_id: message.chat.id,
                                     text: "Hello, #{message.from.first_name}")
         when '/uptime'
