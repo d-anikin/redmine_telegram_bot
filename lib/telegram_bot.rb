@@ -23,8 +23,10 @@ class TelegramBot
     time = Time.now
     stop_zombies
     to_lunch if time.min.zero? && time.hour.eql?(13)
-    remeber_no_trackers if time.min.in? [15, 30, 45]
-    stop_not_working_users if time.min.zero?
+    unless time.hour.eql?(13)
+      remeber_no_trackers if time.min.in? [15, 30, 45]
+      stop_not_working_users if time.min.zero?
+    end
   end
 
   def stop_zombies
