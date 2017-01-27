@@ -144,7 +144,7 @@ class TelegramBot
         index = 0
         users.each do |user|
           next unless user.work_time?
-          result += "#{index + 1}. #{user.name}"
+          result += "#{index + 1}. #{user.name}\n"
           index += 1
         end
         if index > 0
