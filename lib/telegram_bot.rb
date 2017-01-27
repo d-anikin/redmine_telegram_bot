@@ -23,10 +23,8 @@ class TelegramBot
     time = Time.now
     stop_zombies
     to_lunch if time.min.zero? && time.hour.eql?(13)
-    unless time.hour.eql?(13)
-      remeber_no_trackers if time.min.in? [15, 30, 45]
-      stop_not_working_users if time.min.zero?
-    end
+    remeber_no_trackers if time.min.in? [15, 30, 45]
+    stop_not_working_users if time.min.zero?
   end
 
   def stop_zombies
@@ -143,10 +141,13 @@ class TelegramBot
         time_loggers.join("\n")
       else
         result = time_loggers.join("\n")
-        result += "Нет таймера у следующих пользователей:\n"
-        result += users.map.with_index do |user, index|
-          "#{index + 1}. #{user.name}"
-        end.join("\n")
+        result += "\nНет таймера у следующих пользователей:\n"
+        index = 1
+        users.each do |user|
+          next unless user.work_time?
+          result += "#{index}. #{user.name}"
+          index += 1
+        end
         result
       end
     end

@@ -19,6 +19,6 @@ class TelegramUser < ActiveRecord::Base
 
   def work_time?
     time = Time.now
-    time.hour >= start_at.hour && time.hour < end_at.hour
+    !time.hour.eql?(13) && time.hour >= start_at.hour && time.hour < end_at.hour
   end
 end
