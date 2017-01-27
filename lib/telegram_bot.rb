@@ -141,7 +141,7 @@ class TelegramBot
         time_loggers.join("\n")
       else
         result = time_loggers.join("\n")
-        result += "\nНет таймера у следующих пользователей:\n"
+        result += "\n\nНет таймера у следующих пользователей:\n"
         index = 1
         users.each do |user|
           next unless user.work_time?
