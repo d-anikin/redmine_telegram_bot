@@ -128,7 +128,8 @@ class TelegramBot
   def timers
     working_user_ids = []
     time_loggers =
-      TimeLogger.includes(:user, :issue).all.map do |time_logger, index|
+      TimeLogger.includes(:user, :issue).all
+                .map.with_index do |time_logger, index|
         working_user_ids.push(time_logger.user_id)
         "#{index + 1}. #{time_logger.user.name} " \
         "#{issue_link(time_logger.issue)}" \
@@ -143,7 +144,7 @@ class TelegramBot
       else
         result = time_loggers.join("\n")
         result += "Нет таймера у следующих пользователей:\n"
-        result += users.map do |user, index|
+        result += users.map.with_index do |user, index|
           "#{index + 1}. #{user.name}"
         end.join("\n")
         result
