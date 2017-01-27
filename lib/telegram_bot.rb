@@ -126,11 +126,29 @@ class TelegramBot
   end
 
   def timers
-    time_logger = TimeLogger.includes(:user, :issue).all.map do |time_logger|
-      "#{time_logger.user.name} #{issue_link(time_logger.issue)}" \
-      " - <b>#{time_logger.time_spent_to_s}</b>"
+    working_user_ids = []
+    time_loggers =
+      TimeLogger.includes(:user, :issue).all.map do |time_logger, index|
+        working_user_ids.push(time_logger.user_id)
+        "#{index + 1}. #{time_logger.user.name} " \
+        "#{issue_link(time_logger.issue)}" \
+        " - <b>#{time_logger.time_spent_to_s}</b>"
+      end
+    if time_loggers.empty?
+      'Почему-то никто не работает :('
+    else
+      users = TelegramUser.active.where.not(user_id: working_user_ids)
+      if users.empty?
+        time_loggers.join("\n")
+      else
+        result = time_loggers.join("\n")
+        result += "Нет таймера у следующих пользователей:\n"
+        result += users.map do |user, index|
+          "#{index + 1}. #{user.name}"
+        end.join("\n")
+        result
+      end
     end
-    time_logger.empty? ? 'Почему-то никто не работает :(' : time_logger.join("\n")
   end
 
   private
