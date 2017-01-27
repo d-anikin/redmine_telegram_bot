@@ -25,7 +25,10 @@
             </td>
             <td><%= text_field_tag "telegram_users[#{telegram_user.id}][start_at]", telegram_user.start_at_to_s %></td>
             <td><%= text_field_tag "telegram_users[#{telegram_user.id}][end_at]", telegram_user.end_at_to_s %></td>
-            <td><%= check_box_tag "telegram_users[#{telegram_user.id}][active]", true, telegram_user.active %></td>
+            <td>
+              <%= hidden_field_tag "telegram_users[#{telegram_user.id}][active]", false %>
+              <%= check_box_tag "telegram_users[#{telegram_user.id}][active]", true, telegram_user.active %>
+            </td>
           </tr>
         <% end %>
       </tbody>
