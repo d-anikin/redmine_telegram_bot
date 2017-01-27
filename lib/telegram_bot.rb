@@ -140,15 +140,19 @@ class TelegramBot
       if users.empty?
         time_loggers.join("\n")
       else
-        result = time_loggers.join("\n")
-        result += "\n\nНет таймера у следующих пользователей:\n"
-        index = 1
+        result = ''
+        index = 0
         users.each do |user|
           next unless user.work_time?
-          result += "#{index}. #{user.name}"
+          result += "#{index + 1}. #{user.name}"
           index += 1
         end
-        result
+        if index > 0
+          "#{time_loggers.join("\n")}\n\n" \
+          "Нет таймера у следующих пользователей:\n#{result}"
+        else
+          time_loggers.join("\n")
+        end
       end
     end
   end
