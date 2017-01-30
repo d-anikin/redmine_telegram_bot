@@ -71,7 +71,7 @@ class TelegramBot
   end
 
   def stop_not_working_users
-    return true if Time.now.wday >= 6
+    return true if Time.now.wday.in? 1..5
     TimeLogger.all.each do |time_logger|
       telegram_user = TelegramUser.find_by(user_id: time_logger.user_id)
       next if !telegram_user.present? || telegram_user.work_time?
