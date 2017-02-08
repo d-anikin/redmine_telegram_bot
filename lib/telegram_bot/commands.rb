@@ -1,5 +1,5 @@
 module TelegramBot::Commands
-  COMMAND_LIST =  %w(start timers uptime mute)
+  COMMAND_LIST =  %w(start timers uptime mute unmute)
 
   def self.included(base)
     base.extend(ClassMethods)
