@@ -1,30 +1,26 @@
 require 'telegram/bot'
 
 class TelegramBot
-  attr_reader :telegram
+  attr_reader :telegram, :muted_chats, :logger
+  include TelegramBot::Commands
 
   def initialize
     @token = Setting.plugin_redmine_telegram_bot['token']
     @url_base = Setting.plugin_redmine_telegram_bot['url_base']
     @telegram = Telegram::Bot::Client.new(@token)
     @start_at = Time.now
-  end
-
-  def uptime
-    difference = Time.now - @start_at
-    days = (difference / (3600*24)).to_i
-    hours = ((difference % (3600*24)) / 3600).to_i
-    mins = ((difference % (3600)) / 60).to_i
-    secs = (difference % 60).to_i
-    "#{days} days, #{hours} hours, #{mins} minutes and #{secs} seconds"
+    @muted_chats = {}
+    @logger = Logger.new(Rails.root.join('log/telegram_bot.log'))
+    @logger.level = Logger::INFO
   end
 
   def watch
     time = Time.now
     stop_zombies
     to_lunch if time.min.zero? && time.hour.eql?(13)
-    remeber_no_trackers if time.min.in? [15, 30, 45]
     stop_not_working_users if time.min.zero?
+    daily_meeting if Time.now - '16:40'.to_time < 60
+    remeber_no_trackers if time.min.in? [15, 30, 45]
   end
 
   def stop_zombies
@@ -33,10 +29,10 @@ class TelegramBot
       time_logger.stop
       telegram_user = TelegramUser.find_by(user_id: time_logger.user_id)
       next unless telegram_user.present?
-      telegram.api.send_message(
+      api_send_message(
         chat_id: telegram_user.chat_id,
-        text: 'Таймер остановлен!' \
-              "\nВы работали над задачей #{issue_link(time_logger.issue)}",
+        text: 'The timer has been stopped!' \
+              "\nYou have worked on an issue #{issue_link(time_logger.issue)}",
         parse_mode: 'HTML'
       )
     end
@@ -47,10 +43,24 @@ class TelegramBot
       time_logger.stop
       telegram_user = TelegramUser.find_by(user_id: time_logger.user_id)
       next unless telegram_user.present?
-      telegram.api.send_message(
+      api_send_message(
         chat_id: telegram_user.chat_id,
-        text: 'Обед! Приятного аппетита!' \
-              "\nВы работали над задачей #{issue_link(time_logger.issue)}",
+        text: 'Bon Appetit!' \
+              "\nYou have worked on an issue #{issue_link(time_logger.issue)}",
+        parse_mode: 'HTML'
+      )
+    end
+  end
+
+  def daily_meeting
+    TimeLogger.all.each do |time_logger|
+      time_logger.stop
+      telegram_user = TelegramUser.find_by(user_id: time_logger.user_id)
+      next unless telegram_user.present?
+      api_send_message(
+        chat_id: telegram_user.chat_id,
+        text: 'Daily Scrum Meeting!' \
+              "\nYou have worked on an issue #{issue_link(time_logger.issue)}",
         parse_mode: 'HTML'
       )
     end
@@ -63,9 +73,11 @@ class TelegramBot
                 .where.not(user_id: working_user_ids)
                 .each do |telegram_user|
       next unless telegram_user.work_time?
-      telegram.api.send_message(
+      next if muted_chats[telegram_user.chat_id].eql? Data.today
+
+      api_send_message(
         chat_id: telegram_user.chat_id,
-        text: "#{telegram_user.name} включи таймер, пожалуйста"
+        text: "#{telegram_user.name} turn a timer, please"
       )
     end
   end
@@ -76,10 +88,10 @@ class TelegramBot
       telegram_user = TelegramUser.find_by(user_id: time_logger.user_id)
       next if !telegram_user.present? || telegram_user.work_time?
       time_logger.stop
-      telegram.api.send_message(
+      api_send_message(
         chat_id: telegram_user.chat_id,
-        text: 'Таймер остановлен! Приятного отдыха!' \
-              "\nВы работали над задачей #{issue_link(time_logger.issue)}",
+        text: 'The timer has been stopped! Enjoy yourself!' \
+              "\nYou have worked on an issue #{issue_link(time_logger.issue)}",
         parse_mode: 'HTML'
       )
     end
@@ -88,70 +100,24 @@ class TelegramBot
   def listen
     telegram.listen do |message|
       begin
-        case message.text
-        when '/timers'
-          telegram.api.send_message(chat_id: message.chat.id,
-                                    text: timers,
-                                    parse_mode: 'HTML')
-        when '/start'
-          user =
-            TelegramUser.where(chat_id: message.chat.id)
-                        .first_or_initialize do |user|
-                          user.chat_id = message.chat.id
-                          user.name = "#{message.from.first_name} #{message.from.last_name}"
-                        end
-          user.save! if user.new_record?
-          telegram.api.send_message(chat_id: message.chat.id,
-                                    text: "Hello, #{message.from.first_name}")
-        when '/uptime'
-           telegram.api.send_message(chat_id: message.chat.id,
-                                     text: uptime)
+        logger.info("Message: #{message.inspect}")
+        command = message.text.sub('/', '')
+        if command.in? COMMAND_LIST
+          send("#{command}_command", message)
         else
-          telegram.api.send_message(chat_id: message.chat.id,
-                                    text: message.text)
+          api_send_message(chat_id: message.chat.id,
+                           text: message.text)
         end
       rescue Exception => e
         if Rails.env.development?
-          telegram.api.send_message(chat_id: message.chat.id, text: e.message)
+          api_send_message(chat_id: message.chat.id, text: e.message)
           puts e.message
           puts e.backtrace
         else
-          telegram.api.send_message(chat_id: message.chat.id,
-                                    text: 'Some things went wrong')
-        end
-      end
-    end
-  end
-
-  def timers
-    working_user_ids = []
-    time_loggers =
-      TimeLogger.includes(:user, :issue).all
-                .map.with_index do |time_logger, index|
-        working_user_ids.push(time_logger.user_id)
-        "#{index + 1}. #{time_logger.user.name} " \
-        "#{issue_link(time_logger.issue)}" \
-        " - <b>#{time_logger.time_spent_to_s}</b>"
-      end
-    if time_loggers.empty?
-      'Почему-то никто не работает :('
-    else
-      users = TelegramUser.active.where.not(user_id: working_user_ids)
-      if users.empty?
-        time_loggers.join("\n")
-      else
-        result = ''
-        index = 0
-        users.each do |user|
-          next unless user.work_time?
-          result += "#{index + 1}. #{user.name}\n"
-          index += 1
-        end
-        if index > 0
-          "#{time_loggers.join("\n")}\n\n" \
-          "Нет таймера у следующих пользователей:\n#{result}"
-        else
-          time_loggers.join("\n")
+          api_send_message(chat_id: message.chat.id,
+                       text: 'Sorry, something went wrong. A team of highly ' \
+                             'trained monkeys has been dispatched to deal ' \
+                             'with this situation.')
         end
       end
     end
@@ -162,5 +128,9 @@ class TelegramBot
   def issue_link(issue)
     "<a href='#{@url_base}/issues/#{issue.id}'>##{issue.id}</a>" \
     " #{issue.subject.truncate(60)}"
+  end
+
+  def api_send_message(options)
+    telegram.api.send_message(options)
   end
 end
