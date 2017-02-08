@@ -37,12 +37,19 @@ module TelegramBot::Commands
                      text: "#{days}d #{hours}h #{mins}m #{secs}s")
   end
 
-  # Mute a user on day
+  # Disable notifications for a user on day
   def mute_command(message)
     muted_chats[message.chat.id] = Date.today
     api_send_message(chat_id: message.chat.id,
                      text: "Today I'm not going to remember you about " \
                            "timers.")
+  end
+
+  # Enable notifications for a user
+  def unmute_command(message)
+    muted_chats[message.chat.id] = nil
+    api_send_message(chat_id: message.chat.id,
+                     text: "Ok")
   end
 
   private
