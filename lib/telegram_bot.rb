@@ -19,7 +19,7 @@ class TelegramBot
     stop_zombies
     to_lunch if time.min.zero? && time.hour.eql?(13)
     stop_not_working_users if time.min.zero?
-    daily_meeting if Time.now - '16:40'.to_time < 60
+    daily_meeting if (Time.now - '16:40'.to_time).abs < 60
     remeber_no_trackers if time.min.in? [15, 30, 45]
   end
 
