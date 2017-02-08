@@ -19,7 +19,7 @@ class TelegramBot
     stop_zombies
     to_lunch if time.min.zero? && time.hour.eql?(13)
     stop_not_working_users if time.min.zero?
-    daily_meeting if (Time.now - '16:40'.to_time).abs < 60
+    daily_meeting if (time - '16:40'.to_time).abs < 60
     remeber_no_trackers if time.min.in? [15, 30, 45]
   end
 
@@ -73,7 +73,7 @@ class TelegramBot
                 .where.not(user_id: working_user_ids)
                 .each do |telegram_user|
       next unless telegram_user.work_time?
-      next if muted_chats[telegram_user.chat_id].eql? Data.today
+      next if muted_chats[telegram_user.chat_id].eql? Date.today
 
       api_send_message(
         chat_id: telegram_user.chat_id,
