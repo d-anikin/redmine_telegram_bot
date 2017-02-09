@@ -77,7 +77,7 @@ class TelegramBot
 
       api_send_message(
         chat_id: telegram_user.chat_id,
-        text: "#{telegram_user.name} turn a timer, please"
+        text: "#{telegram_user.name} start a timer, please"
       )
     end
   end
