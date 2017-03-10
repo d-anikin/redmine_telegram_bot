@@ -19,8 +19,12 @@ class TelegramBot
     stop_zombies
     to_lunch if time.min.zero? && time.hour.eql?(13)
     stop_not_working_users if time.min.zero?
-    daily_meeting if (time - '16:40'.to_time).abs < 60
-    remeber_no_trackers if time.min.in? [15, 30, 45]
+    if '16:00'.to_time >= time && time < '17:00'.to_time
+      daily_meeting if time.min.in? [0, 5, 10]
+      send_to_general_about_daily_meeting if time.min == 0
+    elsif time.min.in? [0, 15, 30, 45]
+      remeber_no_trackers
+    end
   end
 
   def stop_zombies
@@ -50,6 +54,11 @@ class TelegramBot
         parse_mode: 'HTML'
       )
     end
+  end
+
+  def send_to_general_about_daily_meeting
+     api_send_message(chat_id: -121031024,
+                      text: 'Daily Scrum Meeting, please stand up!')
   end
 
   def daily_meeting
