@@ -4,14 +4,13 @@ class TelegramBot
   attr_reader :telegram, :muted_chats, :logger
   include TelegramBot::Commands
 
-  def initialize
+  def initialize(options = {})
     @token = Setting.plugin_redmine_telegram_bot['token']
     @url_base = Setting.plugin_redmine_telegram_bot['url_base']
     @telegram = Telegram::Bot::Client.new(@token)
     @start_at = Time.now
     @muted_chats = {}
-    @logger = Logger.new(Rails.root.join('log/telegram_bot.log'))
-    @logger.level = Logger::INFO
+    @logger = options[:logger] || Logger.new(Rails.root.join('log/telegram_bot.log'))
   end
 
   def watch
@@ -19,12 +18,14 @@ class TelegramBot
     stop_zombies
     to_lunch if time.min.zero? && time.hour.eql?(13)
     stop_not_working_users if time.min.zero?
-    if (time >= '16:00'.to_time) && (time < '17:00'.to_time)
+    if (time >= '16:30'.to_time) && (time < '17:00'.to_time)
       daily_meeting if time.min.in? [0, 5, 10]
       send_to_general_about_daily_meeting if time.min == 0
     elsif time.min.in? [0, 15, 30, 45]
       remeber_no_trackers
     end
+  rescue Exception => e
+    logger.error("Error in method 'watch': #{e.message}\n#{e.backtrace}")
   end
 
   def stop_zombies
@@ -118,16 +119,7 @@ class TelegramBot
                            text: message.text)
         end
       rescue Exception => e
-        if Rails.env.development?
-          api_send_message(chat_id: message.chat.id, text: e.message)
-          puts e.message
-          puts e.backtrace
-        else
-          api_send_message(chat_id: message.chat.id,
-                       text: 'Sorry, something went wrong. A team of highly ' \
-                             'trained monkeys has been dispatched to deal ' \
-                             'with this situation.')
-        end
+        logger.error("Error in method 'listen': #{e.message}\n#{e.backtrace}")
       end
     end
   end

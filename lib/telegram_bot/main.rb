@@ -4,13 +4,23 @@
 DIR = File.dirname(__FILE__)
 require DIR + '/../../../../config/environment'
 
-bot = TelegramBot.new
+logger = Logger.new(Rails.root.join('log/telegram_bot.log'))
+logger.level = Logger::WARN
 
-watcher = Thread.new do
-  loop do
-    sleep 60
-    bot.watch
+begin
+  bot = TelegramBot.new(logger: logger)
+
+  Thread.new do
+    loop do
+      sleep 60
+      bot.watch
+    end
   end
-end
 
-bot.listen
+  bot.listen
+
+rescue Exception => e
+  logger.error("Error in main.rb: #{e.message}\n#{e.backtrace}")
+ensure
+  logger.warn("main.rb: Done")
+end
