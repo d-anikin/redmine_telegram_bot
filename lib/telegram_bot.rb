@@ -108,6 +108,7 @@ class TelegramBot
   end
 
   def listen
+    logger.info 'Telegram bot listening'
     telegram.listen do |message|
       begin
         logger.info("Message: #{message.inspect}")
