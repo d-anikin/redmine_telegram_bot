@@ -6,7 +6,7 @@ require DIR + '/../../../../config/environment'
 
 logger = Logger.new(Rails.root.join('log/telegram_bot.log'))
 logger.level = Logger::WARN
-
+logger.warn("main.rb: Started")
 begin
   bot = TelegramBot.new(logger: logger)
 
